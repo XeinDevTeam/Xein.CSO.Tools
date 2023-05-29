@@ -1,5 +1,3 @@
-using System.Reflection.Metadata.Ecma335;
-using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
 
@@ -191,7 +189,7 @@ public class PakView
             throw new IndexOutOfRangeException("The data buffer is too small");
 
         var ret = new byte[length];
-        pCipher.DecryptBuffer(ret, length);
+        pCipher.DecryptBuffer(ret, szBuffer, length);
         return ret;
     }
 
@@ -356,15 +354,19 @@ public class PakFile
         var snow = new SnowCipher();
         snow.SetKey(key);
 
-        var headerSize = Marshal.SizeOf<PakHeader>();
-        var headerArray = new byte[headerSize];
+        // IN C, THERE IS VALUE UNINITIALIZE VALUE ON IT, 204(0xCC)
+        var headerArray = new byte[Marshal.SizeOf<PakHeader>()];
+        Array.Fill(headerArray, (byte)0xCC);
+
+        Console.WriteLine($"{BitConverter.ToUInt32(headerArray, 0)} {headerArray[4]} {BitConverter.ToUInt32(headerArray, 5)}");
         
-        snow.DecryptBuffer(headerArray, Marshal.SizeOf<PakHeader>());
+        snow.DecryptBuffer(headerArray, pkgData, headerArray.Length);
+
+        Console.WriteLine($"{BitConverter.ToUInt32(headerArray, 0)} {headerArray[4]} {BitConverter.ToUInt32(headerArray, 5)}");
 
         return new()
-               { iChecksum = BitConverter.ToUInt32(headerArray, 0),
-                 iVersion  = headerArray[4],
-                 iEntries  = BitConverter.ToUInt32(headerArray, 5),
-                 pad       = headerArray[9..], };
-    }
+        { iChecksum = BitConverter.ToUInt32(headerArray, 0),
+          iVersion  = headerArray[4],
+          iEntries  = BitConverter.ToUInt32(headerArray, 5),
+          pad       = headerArray[9..] }; }
 }

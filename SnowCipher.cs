@@ -282,10 +282,13 @@ public class SnowCipher
             data[offset + i] = va[i];
     }
 
-    public void DecryptBuffer(byte[] outBuffer, int dataSize)
+    public void DecryptBuffer(byte[] outBuffer, byte[] inBuffer, int dataSize)
     {
         var numBlocks = dataSize / SNOW_BLOCKS_SIZE;
         var i = 0;
+
+        // ptrdiff which means both outBuffer and inBuffer between difference how much of length
+        // but in here we just skip it.... we are not C, directly accessed without "ptr" :)
 
         for (; numBlocks > 0; numBlocks--)
         {
@@ -294,12 +297,16 @@ public class SnowCipher
                 DecryptBlock();
                 m_BlocksAvailable = 0;
             }
-            
-            var sourceData = GetInt32(outBuffer, i * 4);
-            WriteInt32(outBuffer, (int)(sourceData - m_Buffer[m_BlocksAvailable]), i++);
+
+            // TODO: Fix here
+            var sourceData = GetInt32(inBuffer, i * 4);
+            WriteInt32(outBuffer, (int)(sourceData - m_Buffer[m_BlocksAvailable]), (i++) * 4);
 
             if (dataSize == 0xC)
-                Console.WriteLine($"{numBlocks}, {i}: {m_BlocksAvailable}, {sourceData}, {GetInt32(outBuffer, i * 4)}");
+            {
+                Console.WriteLine($"{string.Join('\t', outBuffer)}");
+                Console.WriteLine($"{numBlocks}: {m_BlocksAvailable} {sourceData} {GetInt32(outBuffer, (i - 1) * 4)}");
+            }
 
             m_BlocksAvailable++;
         }
